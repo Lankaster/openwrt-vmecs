@@ -1,0 +1,87 @@
+#!/bin/sh /etc/rc.common
+
+START=98
+STOP=05
+USE_PROCD=1
+
+SETTINGS="settings.toml"
+
+load_config() {
+    local param local proxy port pass
+
+    config_load vmecs
+    config_get proto vmecs_in proto "native"
+    config_get local vmecs_in local 
+    config_get proxy vmecs_in proxy
+    config_get port vmecs_in port 
+    config_get pass vmecs_in pass
+
+    mkdir -p /var/vmecs
+
+    {
+	printf "\[inbound\]\n"
+	printf "\tproto = \"$proto\"\n"
+	if [ -n "$local" ]; then
+	    printf "\tlocal = \"$local\"\n"
+	fi
+	if [ -n "$proxy" ]; then
+	    printf "\tproxy = \"$proxy\"\n"
+	fi
+	if [ -n "$port" ]; then
+	    printf "\tport = \"$port\"\n"
+	fi
+	if [ -n "$pass" ]; then
+	    printf "\tpass = \"$pass\"\n"
+	fi
+    } > /var/vmecs/$1
+
+    config_get proto vmecs_out proto "native"
+    config_get local vmecs_out local 
+    config_get proxy vmecs_out proxy
+    config_get port vmecs_out port 
+    config_get pass vmecs_out pass
+
+    {
+	printf "\[inbound\]\n"
+	printf "\tproto = \"$proto\"\n"
+	if [ -n "$local" ]; then
+	    printf "\tlocal = \"$local\"\n"
+	fi
+	if [ -n "$proxy" ]; then
+	    printf "\tproxy = \"$proxy\"\n"
+	fi
+	if [ -n "$port" ]; then
+	    printf "\tport = \"$port\"\n"
+	fi
+	if [ -n "$pass" ]; then
+	    printf "\tpass = \"$pass\"\n"
+	fi
+    } >> /var/vmecs/$1
+
+
+    [ -e /etc/vmecs/$1 ] || ln -nsf /var/vmecs/$1 /etc/vmecs/$1
+
+}
+
+service_triggers() {
+    procd_add_reload_trigger "vmecs"
+}
+
+start_service() {
+    load_config $SETTINGS
+
+    if [ ! -e /etc/vmess/smb.conf ]; then
+        logger -p daemon.error -t 'vmecs' "missing config /etc/vmecs/$SETTINGS!"
+        exit 1
+    fi
+
+    procd_open_instance
+    procd_set_param command /usr/bin/vmecs
+    procd_append_param command "/etc/vmecs/$SETTINGS"
+    procd_set_param pidfile /var/run/vmecs.pid
+    procd_set_param file /etc/vmecs/$SETTINGS
+    procd_set_param netdev "br-lan"
+    procd_set_param netdev "wan"
+    procd_close_data
+    procd_close_instance
+}

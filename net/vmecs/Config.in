@@ -1,0 +1,20 @@
+if PACKAGE_vmecs
+
+comment "SSL support"
+
+choice
+	prompt "Selected SSL library"
+		default VMECS_MBEDTLS
+
+	config VMECS_MBEDTLS
+		bool "mbed TLS"
+
+	config VMECS_OPENSSL
+		bool "OpenSSL"
+
+	config VMECS_GNUTLS
+		bool "GNUTLS"
+
+endchoice
+
+endif
